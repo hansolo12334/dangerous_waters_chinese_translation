@@ -1,0 +1,1 @@
+"C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\MSBuild\Current\Bin\Roslyn\csc.exe" /target:exe  /out:grp_rebuild.exe /reference:AdamMil.IO.dll /reference:AdamMil.Utilities.dll GrpFile.cs Program.cs 

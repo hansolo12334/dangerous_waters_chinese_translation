@@ -1,0 +1,1 @@
+"C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\MSBuild\Current\Bin\Roslyn\csc.exe" /target:library /out:grp.dll /reference:AdamMil.IO.dll /reference:AdamMil.Utilities.dll GrpCore.cs

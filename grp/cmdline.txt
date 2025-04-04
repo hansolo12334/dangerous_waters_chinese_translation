@@ -1,0 +1,54 @@
+This file describes the command line arguments used by Dangerous Waters.
+The command line arguments can begin with either a slash (/n) or a dash (-n).
+The names of command-line arguments are case-sensitive.
+
+DEBUGGING:
+/debugoutput  Output debug information (requires an attached debugger).
+/wences       Allows multiple instances of the game to run simultaneously, and uniquefies the
+              names of replay files.
+
+GRAPHICS:
+/noswitchres        Disallow changes to screen resolution.
+/no3d               Disables the 3D view.
+/noenum             Do not try to enumerate display modes before running.
+/adapterID <n>      Select the graphics adapter to use, where I believe 0 is the first, 1 is the
+                    second, etc, but I'm not sure.
+/deviceID <n>       Select the graphics device to use, where I believe 0 is the first, 1 is the
+                    second, etc, but I'm not sure.
+/modeID <n>         Select the graphics mode to use, where I believe 1 is the first, 2 is the
+                    second, etc, but I'm not sure.
+/ATIFixed           Enables a graphics hack for ATI cards.
+/wantManualClear    Enables a graphics hack for Geforce3 cards.
+/wantVSync          Enables synchronization with the vertical retrace.
+/limit              Repaints the screen at most once every 33 milliseconds.
+/fullscreen         Start in fullscreen mode.
+/windowed           Start in windowed mode.
+
+MULTIPLAYER:
+/host                 Begin hosting a game.
+/join <address>       Join a game at the given address.
+/connect <address>    Same as /join.
+/name <username>      Set the user name for multiplayer games.
+/n <username>         Same as /name.
+/maxplayers <n 1-30>  Sets the maximum number of players when hosting a game.
+/gclaunched           Unsure. Forces the game to think that a multiplayer game has been launched
+                      on startup. Perhaps this is meant to be used by lobby software such as
+                      GameSpy?
+/useiniseed           Use the seed from the INI file when generating a scenario.
+/seed <n>             Use the provided seed when generating a scenario.
+/scenario <name>      Sets the name of the scenario to use when hosting a game.
+/hull <n 1-65534>     Sets the ID of the hull you wish to use.
+
+UI:
+/lang <e|f|g|c|j>     Display text in English, French, German, Chinese, or Japanese (assuming the
+                      corresponding language pack is installed).
+/skipopening          Skip the opening movies.
+/nodisplay            Apparently unused.
+
+OTHER:
+/nosound          Disable sound support.
+/noreplay         Don't create a replay.
+/noaggie          Unknown and possibly unused.
+/noDDSSupport     Unknown and possibly unused.
+/limitDDSTexSize  Unknown and possibly unused.
+/? /help          Displays this help message.
