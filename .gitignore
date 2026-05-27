@@ -1,1 +1,4 @@
 /scripts/output
+/build
+/translations/export
+__pycache__/
