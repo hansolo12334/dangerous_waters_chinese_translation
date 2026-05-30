@@ -17,6 +17,7 @@
 已确认的静态图片汉化候选与推进顺序见 `docs/static_graphics_inventory.md`。
 任务文件提取、翻译、构建、安装与验收流程见 `docs/mission_localization_workflow.md`。
 通用 `AppTextE.dll` 与平台 `TextE.dll` 动态文本汉化流程见 `docs/dll_text_localization_workflow.md`。
+海军资料库 `Graphics\usnidata` 文本汉化流程见 `docs/usni_reference_localization_workflow.md`。
 
 ## 文本 PoC
 

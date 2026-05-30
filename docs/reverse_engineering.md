@@ -76,6 +76,15 @@
 - `scripts\scenario_text_tool.py` 可按 `FIELD#序号` 提取/回填 `BEGINTEXT` 至 `ENDTEXT` 文本块，避免改动任务实体、触发器和脚本命令。
 - `scripts\build_mission_poc.py` 已生成 `SM08` 的中文验证包：任务名“非洲蜂巢”、首页描述及完整玩家任务书；该翻译引入 203 个中文字形，仅需一个新增字体页。
 
+## 海军资料库文本
+
+- `USNI Reference` 页面不使用 `AppTextE.dll` 或任务文件；资料正文来自 `Graphics\usnidata.ndx/.grp` 中的大量 `.txt` 文件，照片为同归档中的 `.jpg`。
+- 界面背景和左侧按钮来自 `Graphics\usniref.ndx/.grp`，属于静态图片汉化范围。
+- 截图中的 `TOURVILLE CLASS DD` 对应 `usnidata` 内 `TourvilleClassDD.txt`，照片为 `Tourville_DD.jpg`；目录入口位于 `France_TOC.txt` 的 `LINK="TourvilleClassDD.txt","Tourville_DD.jpg","Tourville DDG"`。
+- `LINK` 文件名不能翻译，只能翻译显示标签与目标 `.txt` 正文；USNI 译文同样需要加入 `build_utf8_fui_hook_poc.py --font-text`，否则新增汉字会显示为 `?`。
+- 实测 `TourvilleClassDD.txt` 原文照片署名 `Prézelin` 中的 `é` 不在当前中文位图字体页内，若未转写会显示为 `Pr?zelin`；示例译文统一写作 `Prezelin`，且修改后必须重新回包 `Graphics\usnidata`。
+- `USNI INFORMATION / BROWSER ENTRY INFORMATION` 不是正文文件标题，而是目录页标记：顶层入口在 `Country_Weapons_TOC.txt`，进入后目录在 `USNI_TOC.txt`；右侧说明正文 `Terms and Abbreviations` 来自 `Terms.txt`。
+
 ## 推荐推进顺序
 
 1. 实机验证 `build\utf8_fui_hook_poc` 的退出弹窗，并确认切入其他 FUI 界面后英文不再被中文字形污染。

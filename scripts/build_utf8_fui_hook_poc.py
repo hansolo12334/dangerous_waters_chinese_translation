@@ -27,6 +27,7 @@ def main() -> None:
     parser.add_argument(
         "--apptext-source",
         type=Path,
+        default=repository.parent / "Dangerous Waters/back/AppTextE.dll",
         help="Clean AppTextE.dll source; defaults to the current game copy.",
     )
     parser.add_argument(
@@ -54,7 +55,9 @@ def main() -> None:
     )
     arguments = parser.parse_args()
 
-    chinese_characters = collect_characters(arguments.translations + arguments.font_text)
+    translation_paths = resolve_translation_paths(arguments.translations)
+    font_text_paths = resolve_translation_paths(arguments.font_text)
+    chinese_characters = collect_characters(translation_paths + font_text_paths)
     if not chinese_characters:
         raise ValueError("Translation files contain no non-ASCII glyphs")
 
@@ -92,7 +95,7 @@ def main() -> None:
         encoding="utf-8",
     )
 
-    merge_translation_files(arguments.translations, output / "translations_merged.json")
+    merge_translation_files(translation_paths, output / "translations_merged.json")
     apptext_source = arguments.apptext_source or arguments.game_dir / "AppTextE.dll"
     subprocess.run(
         [
@@ -115,9 +118,39 @@ def collect_characters(paths: list[Path]) -> list[str]:
     characters: set[str] = set()
     for path in paths:
         translations = json.loads(path.read_text(encoding="utf-8"))
-        for text in translations.values():
+        for text in iter_translation_texts(translations):
             characters.update(character for character in text if ord(character) >= 0x80)
     return sorted(characters, key=ord)
+
+
+def resolve_translation_paths(paths: list[Path]) -> list[Path]:
+    resolved: list[Path] = []
+    seen: set[Path] = set()
+    for path in paths:
+        candidates = sorted(path.glob("*.json")) if path.is_dir() else [path]
+        for candidate in candidates:
+            absolute = candidate.resolve()
+            if absolute in seen:
+                continue
+            seen.add(absolute)
+            resolved.append(candidate)
+    return resolved
+
+
+def iter_translation_texts(translations) -> list[str]:
+    if isinstance(translations, dict) and "text" in translations:
+        return [translations["text"]]
+    if isinstance(translations, dict) and "lines" in translations:
+        return ["\n".join(translations["lines"])]
+    if isinstance(translations, dict):
+        texts = []
+        for value in translations.values():
+            if isinstance(value, str):
+                texts.append(value)
+            elif isinstance(value, list):
+                texts.append("\n".join(str(line) for line in value))
+        return texts
+    raise TypeError("translation file must contain a JSON object")
 
 
 def default_shared_source(game_dir: Path) -> Path:

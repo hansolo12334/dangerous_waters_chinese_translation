@@ -77,7 +77,7 @@ if (Test-Path "$game\dinput8.dll") { Copy-Item "$game\dinput8.dll" "$backup\dinp
 
 ## 5. 任务文件中的可翻译块
 
-工具仅提取并回填由 `BEGINTEXT` / `ENDTEXT` 包围的以下四类字段：
+工具提取并回填由 `BEGINTEXT` / `ENDTEXT` 包围的以下字段：
 
 | 字段 | 常见显示位置 | 翻译建议 |
 | --- | --- | --- |
@@ -85,6 +85,8 @@ if (Test-Path "$game\dinput8.dll") { Copy-Item "$game\dinput8.dll" "$backup\dinp
 | `DESCRIPTION` | 列表简介、目标/事件说明 | `#1` 通常优先翻译，后续块按界面验证推进 |
 | `PLAYERTASKING` | 玩家简报 / 作战命令 | 必译，内容最长 |
 | `TASKINGMESSAGE` | 任务指令或动态任务信息 | 若存在，应翻译并实机触发验证 |
+| `MESSAGETYPEID` | `GOAL` / `ACTION` 触发消息、弹窗或扣分提示 | 非空项优先翻译，必须实机触发验证 |
+| `SUCCESSMESSAGE` / `FAILUREMESSAGE` | 任务成功/失败消息 | 若任务文件中存在，应翻译 |
 
 同一字段可在一个任务文件内出现多次。JSON 键使用出现顺序编号，例如：
 
@@ -92,7 +94,33 @@ if (Test-Path "$game\dinput8.dll") { Copy-Item "$game\dinput8.dll" "$backup\dinp
 {
   "DESCRIPTION#1": "整备锚泊与航行设备，立即出港驶向外海。",
   "MISSIONTITLE#1": "非洲蜂巢",
+  "MESSAGETYPEID#1": "受损！",
   "PLAYERTASKING#1": "..."
+}
+```
+
+`MESSAGETYPEID#n` 来自以下结构，编号按任务文件中所有 `MESSAGETYPEID <数字>` 的出现顺序计算；导出时会跳过空消息，但编号仍保留原始出现顺序：
+
+```text
+MESSAGETYPEID 1
+BEGINTEXT
+Damaged sustained!
+ENDTEXT
+```
+
+长篇简报也可以把某个字段写成 `lines` 风格的数组，便于按原始排版维护；`scenario_text_tool.py` 回填时会按数组顺序逐行写回：
+
+```json
+{
+  "MISSIONTITLE#1": "非洲蜂巢",
+  "PLAYERTASKING#1": [
+    "发自: 第60特遣舰队司令(CTF 60)<R>",
+    "",
+    "致: 柯茨号护卫舰(FFG 38)<R>",
+    "",
+    "1. 情况<R>",
+    "冈比亚发生突发政变,局势不稳.<R>"
+  ]
 }
 ```
 
@@ -142,8 +170,9 @@ Select-String -LiteralPath 'translations\scenario_export\SM08.json' -Pattern 'Af
 1. `MISSIONTITLE#1`：先确认任务列表中标题显示正常。
 2. `DESCRIPTION#1`：确认列表说明或预览区域。
 3. `PLAYERTASKING#1`：确认简报正文分页、换行和滚动。
-4. `TASKINGMESSAGE#*`：进入游戏触发任务消息后验证。
-5. `DESCRIPTION#2` 及之后文本：在确认其目标/事件显示位置后翻译。
+4. `MESSAGETYPEID#*` / `TASKINGMESSAGE#*`：进入游戏触发任务消息后验证。
+5. `SUCCESSMESSAGE#*` / `FAILUREMESSAGE#*`：确认结算或结束条件显示。
+6. `DESCRIPTION#2` 及之后文本：在确认其目标/事件显示位置后翻译。
 
 ## 8. 翻译规范与不可破坏内容
 
@@ -173,6 +202,9 @@ Select-String -LiteralPath 'translations\scenario_export\SM08.json' -Pattern 'Af
 - 简报正文可使用中文标点；英文缩写、舰名和单位保持可辨识。
 - 现有中文字形为 `16×16` 点阵，长段落显示密度高；应避免冗长直译。
 - 不要把 `<R>` 改成普通换行；普通换行只用于提高 JSON 可读性，游戏版面由 `<R>` 主导。
+- 任务选择页右下角 `TASKING` 预览框比点进后的完整简报更窄，且可能按旧式字节/列宽截断；如果预览框行尾出现 `??`，通常不是译文或字库坏了，而是该行过长。把 `PLAYERTASKING` 中对应长句提前用 `<R>` 硬换行即可。
+- `TASKING` 预览框实测安全线约为 16–18 个汉字；19–21 个汉字需谨慎，22–24 个汉字危险，25 个以上基本会截断或出现 `??`。
+- 混合英文/数字时按近似像素估算：中文约 `16 px`，英文/数字/半角标点约 `8 px`；预览框单行建议控制在 `300 px` 以内，最多不要超过 `360 px`。
 
 ## 9. 第三步：回填单个任务进行检查
 
@@ -223,11 +255,10 @@ build\mission_zh_poc\runtime\
 
 ```powershell
 & $python scripts\build_mission_poc.py --game-dir $game `
-  --scenario-translations `
-  translations\scenarios\SM08_zh.json `
-  translations\scenarios\KSM01_zh.json `
-  translations\scenarios\P3SM01_zh.json
+  --scenario-translations translations\scenarios
 ```
+
+`--scenario-translations` 可以混用 JSON 文件和目录。目录会按文件名排序加载其中所有 `*.json`，重复路径会自动去重。
 
 构建器会：
 
@@ -238,6 +269,54 @@ build\mission_zh_poc\runtime\
 5. 逐个回填任务文件至输出包的 `Scenario\` 目录。
 
 注意：每次译文新增字符后，必须重新复制新的 `dinput8.dll` 与 `Graphics\shared.ndx/.grp`；只复制新的任务文件可能会让新增汉字显示为问号。
+
+### 与 `AppTextE.dll` 合并构建
+
+如果同时维护 `translations\dll\AppTextE_zh.json` 和多个任务译文，不要分别安装多个运行包。后安装的包会覆盖前一个包的中文字库映射，导致另一类中文显示为 `?`。
+
+推荐按来源分层维护：
+
+```text
+translations\dll\AppTextE_zh.json
+translations\scenarios\SM08_zh.json
+translations\scenarios\KSM01_zh.json
+translations\scenarios\P3SM01_zh.json
+translations\usni\*.json
+```
+
+任务文件先批量回填到一个输出包：
+
+```powershell
+& $python scripts\build_mission_poc.py `
+  --game-dir $game `
+  --output-dir build\missions_all `
+  --scenario-translations translations\scenarios
+```
+
+然后用同一次运行环境构建收集所有中文：
+
+```powershell
+$python = 'D:\Miniconda\envs\mujoco\python.exe'
+$game = 'D:\project\dangerous waters\Dangerous Waters'
+
+& $python scripts\build_utf8_fui_hook_poc.py `
+  --game-dir $game `
+  --apptext-source "$game\back\AppTextE.dll" `
+  --output-dir build\runtime_all `
+  --translations translations\dll\AppTextE_zh.json `
+  --font-text translations\scenarios translations\usni
+```
+
+安装时复制：
+
+```powershell
+Copy-Item "build\runtime_all\dinput8.dll" "$game\dinput8.dll" -Force
+Copy-Item "build\runtime_all\AppTextE.dll" "$game\AppTextE.dll" -Force
+Copy-Item "build\runtime_all\Graphics\shared.*" "$game\Graphics\" -Force
+Copy-Item "build\missions_all\runtime\Scenario\*" "$game\Scenario\" -Force
+```
+
+规则：`AppTextE_zh.json` 放 `--translations`；任务、USNI 等不写入 `AppTextE.dll` 但需要中文字形的来源放 `--font-text`。
 
 ## 11. 第五步：安装测试包
 

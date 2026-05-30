@@ -8,7 +8,30 @@ import json
 from pathlib import Path
 
 
-TEXT_FIELDS = {"DESCRIPTION", "MISSIONTITLE", "TASKINGMESSAGE", "PLAYERTASKING"}
+TEXT_FIELDS = {
+    "DESCRIPTION",
+    "FAILUREMESSAGE",
+    "MISSIONTITLE",
+    "PLAYERTASKING",
+    "SUCCESSMESSAGE",
+    "TASKINGMESSAGE",
+}
+
+
+def translation_lines(value) -> list[str]:
+    if isinstance(value, list):
+        return [str(line) for line in value]
+    return str(value).splitlines()
+
+
+def block_field(line: str) -> str | None:
+    field = line.strip()
+    if field in TEXT_FIELDS:
+        return field
+    parts = field.split()
+    if len(parts) == 2 and parts[0] == "MESSAGETYPEID" and parts[1].isdigit():
+        return "MESSAGETYPEID"
+    return None
 
 
 def main() -> None:
@@ -32,8 +55,8 @@ def locate_blocks(lines: list[str]) -> list[tuple[str, int, int, int]]:
     counts: dict[str, int] = {}
     blocks: list[tuple[str, int, int, int]] = []
     for index, line in enumerate(lines):
-        field = line.strip()
-        if field not in TEXT_FIELDS or index + 1 >= len(lines):
+        field = block_field(line)
+        if field is None or index + 1 >= len(lines):
             continue
         if lines[index + 1].strip() != "BEGINTEXT":
             continue
@@ -52,6 +75,7 @@ def extract_blocks(source: Path, output: Path) -> None:
     translations = {
         key: "\n".join(lines[start:end])
         for key, start, end, _ in locate_blocks(lines)
+        if key.startswith("MESSAGETYPEID#") is False or "\n".join(lines[start:end]).strip()
     }
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(
@@ -71,7 +95,7 @@ def patch_blocks(source: Path, translations_path: Path, output: Path) -> None:
     for key, (start, end) in sorted(blocks.items(), key=lambda item: item[1][0], reverse=True):
         if key not in translations:
             continue
-        replacement = str(translations[key]).splitlines()
+        replacement = translation_lines(translations[key])
         lines[start:end] = replacement
         patched += 1
     output.parent.mkdir(parents=True, exist_ok=True)

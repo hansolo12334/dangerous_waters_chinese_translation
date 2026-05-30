@@ -1,0 +1,17 @@
+{
+    "file": "USNI_TOC.txt",
+    "lines": [
+        "<FONT=\"fru_plain.bmp\" COLOR=24 180 240>USNI 资料",
+        "<end>",
+        "<FONT=\"fru_plain.bmp\" COLOR=216 188 24>浏览器条目说明",
+        "<end>",
+        "<FONT=\"fru_plain.bmp\" COLOR=24 180 240>术语与缩略语",
+        "<end>",
+        "<FONT=\"fru_plain.bmp\" COLOR=228 228 228 LINK=\"Terms.txt\",\"nophoto.jpg\",\"\">    术语 ",
+        "<end>",
+        "<FONT=\"fru_plain.bmp\" COLOR=228 228 228 LINK=\"Abbreviations.txt\",\"nophoto.jpg\",\"\">    首字母缩略词/缩写",
+        "<end>",
+        "<FONT=\"fru_plain.bmp\" COLOR=228 228 228 LINK=\"ShipTypeDesignations.txt\",\"nophoto.jpg\",\"\">    舰船类型代号 ",
+        "<end>"
+    ]
+}   

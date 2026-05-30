@@ -356,7 +356,63 @@ New-Item -ItemType Directory -Force -Path "$pack\Interfaces\FFG" | Out-Null
 
 每次新增或修改任何 DLL 中文译文后，都应重新构建 `dinput8.dll` 与 `Graphics\shared.ndx/.grp`。
 
-## 12. 第六步：安装可运行包
+## 12. AppText 与任务文本合并构建命令
+
+如果同时汉化了 `AppTextE.dll` 和 `Scenario\*.ms/.mp/.mc` 任务文本，必须把两类译文放进同一次构建。否则后构建的字库会覆盖前一次的中文字形映射，表现为之前正常显示的任务中文变成 `?`。
+
+推荐按来源分层维护：
+
+```text
+translations\dll\AppTextE_zh.json
+translations\scenarios\*.json
+translations\usni\*.json
+```
+
+先批量生成任务文件输出包：
+
+```powershell
+$python = 'D:\Miniconda\envs\mujoco\python.exe'
+$game = 'D:\project\dangerous waters\Dangerous Waters'
+
+& $python scripts\build_mission_poc.py `
+  --game-dir $game `
+  --output-dir build\missions_all `
+  --scenario-translations translations\scenarios
+```
+
+再生成统一运行环境：
+
+```powershell
+$python = 'D:\Miniconda\envs\mujoco\python.exe'
+$game = 'D:\project\dangerous waters\Dangerous Waters'
+
+& $python scripts\build_utf8_fui_hook_poc.py `
+  --game-dir $game `
+  --apptext-source "$game\back\AppTextE.dll" `
+  --output-dir build\runtime_all `
+  --translations translations\dll\AppTextE_zh.json `
+  --font-text translations\scenarios translations\usni
+```
+
+安装合并包：
+
+```powershell
+$runtime = 'D:\project\dangerous waters\dangerous_waters_chinese_translation\build\runtime_all'
+$missions = 'D:\project\dangerous waters\dangerous_waters_chinese_translation\build\missions_all\runtime'
+
+Copy-Item "$runtime\dinput8.dll" "$game\dinput8.dll" -Force
+Copy-Item "$runtime\AppTextE.dll" "$game\AppTextE.dll" -Force
+Copy-Item "$runtime\Graphics\shared.*" "$game\Graphics\" -Force
+Copy-Item "$missions\Scenario\*" "$game\Scenario\" -Force
+```
+
+记忆规则：
+
+- `--translations`：放要回填进 `AppTextE.dll` 的 JSON。
+- `--font-text`：放不回填进 `AppTextE.dll`、但必须纳入中文字库的 JSON，例如任务译文和平台 `TextE.dll` 译文。
+- 每次新增任何中文来源，都重新生成并一起覆盖 `dinput8.dll`、`Graphics\shared.ndx/.grp`，不要只覆盖单独的 DLL 或任务文件。
+
+## 13. 第六步：安装可运行包
 
 ### 通用 `AppTextE.dll` 包
 
@@ -381,7 +437,7 @@ Copy-Item "$pack\Interfaces\FFG\TextE.dll" "$game\Interfaces\FFG\TextE.dll" -For
 
 安装后启动游戏，从与本批译文对应的页面进入测试。
 
-## 13. 第七步：实机验收流程
+## 14. 第七步：实机验收流程
 
 ### 13.1 每包必做冒烟测试
 
@@ -421,7 +477,7 @@ Copy-Item "$pack\Interfaces\FFG\TextE.dll" "$game\Interfaces\FFG\TextE.dll" -For
 - 切换不同界面或平台后是否闪退。
 - 页面中是否存在文字被截断、换行错位、控件宽度不足。
 
-## 14. 批量翻译推进方式
+## 15. 批量翻译推进方式
 
 ### 推荐阶段
 
@@ -456,7 +512,7 @@ Copy-Item "$pack\Interfaces\FFG\TextE.dll" "$game\Interfaces\FFG\TextE.dll" -For
 | `Bearing` | `方位` |
 | `Range` | `距离` |
 
-## 15. 常见问题与排障
+## 16. 常见问题与排障
 
 ### 仅替换 DLL，中文变乱码
 
@@ -469,6 +525,8 @@ Copy-Item "$pack\Interfaces\FFG\TextE.dll" "$game\Interfaces\FFG\TextE.dll" -For
 原因：中文 DLL 与字体映射不同步，常见于修改 JSON 后只覆盖了 DLL。
 
 处理：重新构建运行包，并覆盖新的 `dinput8.dll` 与 `Graphics\shared.ndx/.grp`。
+
+如果刚覆盖了 AppText 包后任务中文变成 `?`，说明任务译文没有放进本次 `--font-text`。按“AppText 与任务文本合并构建命令”重新生成合并包。
 
 ### 生成 DLL 时格式符校验失败
 
@@ -497,7 +555,7 @@ Copy-Item "$pack\Interfaces\FFG\TextE.dll" "$game\Interfaces\FFG\TextE.dll" -For
 3. Kilo 当前测试文本是否实际来自 `TextE.dll` 或 `TextCE.dll`。
 4. 用 ASCII 探针先确认字符串来源，再测试中文。
 
-## 16. 恢复原版
+## 17. 恢复原版
 
 恢复通用动态 UI：
 
@@ -519,7 +577,7 @@ if (Test-Path "$backup\dinput8.dll") {
 Copy-Item "$backup\Interfaces\FFG\TextE.dll" "$game\Interfaces\FFG\TextE.dll" -Force
 ```
 
-## 17. 当前可直接使用的回归样例
+## 18. 当前可直接使用的回归样例
 
 | 文件 | 用途 |
 | --- | --- |

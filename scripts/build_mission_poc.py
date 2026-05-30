@@ -10,6 +10,20 @@ import sys
 from pathlib import Path
 
 
+def resolve_translation_paths(paths: list[Path]) -> list[Path]:
+    resolved: list[Path] = []
+    seen: set[Path] = set()
+    for path in paths:
+        candidates = sorted(path.glob("*.json")) if path.is_dir() else [path]
+        for candidate in candidates:
+            absolute = candidate.resolve()
+            if absolute in seen:
+                continue
+            seen.add(absolute)
+            resolved.append(absolute)
+    return resolved
+
+
 def main() -> None:
     repository = Path(__file__).resolve().parent.parent
     parser = argparse.ArgumentParser()
@@ -24,7 +38,9 @@ def main() -> None:
     )
     arguments = parser.parse_args()
     output_dir = arguments.output_dir.resolve()
-    scenario_translations = [path.resolve() for path in arguments.scenario_translations]
+    scenario_translations = resolve_translation_paths(arguments.scenario_translations)
+    if not scenario_translations:
+        raise ValueError("No scenario translation JSON files were found")
     utf8_output = output_dir / "runtime"
     subprocess.run(
         [
