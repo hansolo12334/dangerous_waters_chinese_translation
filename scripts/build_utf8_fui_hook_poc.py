@@ -53,7 +53,23 @@ def main() -> None:
         type=Path,
         default=repository / "assets" / "wqy-bitmapsong" / "wenquanyi_12pt.pcf",
     )
+    parser.add_argument(
+        "--cjk-glyph-size",
+        type=int,
+        default=16,
+        help="Rendered CJK bitmap size inside each 16x16 atlas cell.",
+    )
+    parser.add_argument(
+        "--cjk-advance-extra",
+        type=int,
+        default=0,
+        help="Extra spacing pixels added after each CJK glyph.",
+    )
     arguments = parser.parse_args()
+    if not 8 <= arguments.cjk_glyph_size <= 16:
+        raise ValueError("--cjk-glyph-size must be between 8 and 16")
+    if not 0 <= arguments.cjk_advance_extra <= 8:
+        raise ValueError("--cjk-advance-extra must be between 0 and 8")
 
     translation_paths = resolve_translation_paths(arguments.translations)
     font_text_paths = resolve_translation_paths(arguments.font_text)
@@ -79,6 +95,8 @@ def main() -> None:
         characters=chinese_characters,
         font=PcfBitmapFont(arguments.wqy_pcf),
         assets_dir=assets_dir,
+        glyph_size=arguments.cjk_glyph_size,
+        advance_extra=arguments.cjk_advance_extra,
     )
     update_archive(repository / "grp" / "bin" / "grp.exe", archive, assets_dir, mappings)
     write_glyph_map_header(generated_dir / "generated_glyph_map.h", mappings)
@@ -170,7 +188,11 @@ def merge_translation_files(paths: list[Path], output_path: Path) -> None:
 
 
 def build_font_pages(
-    characters: list[str], font: PcfBitmapFont, assets_dir: Path
+    characters: list[str],
+    font: PcfBitmapFont,
+    assets_dir: Path,
+    glyph_size: int,
+    advance_extra: int,
 ) -> list[tuple[str, int, int]]:
     mappings: list[tuple[str, int, int]] = []
     for page_index in range((len(characters) + SLOT_COUNT - 1) // SLOT_COUNT):
@@ -180,16 +202,20 @@ def build_font_pages(
         for offset, character in enumerate(page_characters):
             slot = SLOT_FIRST + offset
             glyph = font.glyph(character)
-            if glyph.size != (16, 16):
-                glyph = glyph.resize((16, 16), Image.Resampling.NEAREST)
-            image.paste(glyph, ((slot % 16) * 16, (slot // 16) * 16))
+            if glyph.size != (glyph_size, glyph_size):
+                glyph = glyph.resize((glyph_size, glyph_size), Image.Resampling.NEAREST)
+            cell_x = (slot % 16) * 16
+            cell_y = (slot // 16) * 16
+            glyph_x = cell_x + (16 - glyph_size) // 2
+            glyph_y = cell_y + (16 - glyph_size) // 2
+            image.paste(glyph, (glyph_x, glyph_y))
             mappings.append((character, page_index, slot))
         image.save(assets_dir / f"{stem}.bmp")
-        write_dimensions(assets_dir / f"{stem}.dim", stem)
+        write_dimensions(assets_dir / f"{stem}.dim", stem, spacing=1 + advance_extra)
     return mappings
 
 
-def write_dimensions(path: Path, stem: str) -> None:
+def write_dimensions(path: Path, stem: str, spacing: int) -> None:
     lines = [
         "Version: 2",
         f"font: {stem}",
@@ -199,7 +225,7 @@ def write_dimensions(path: Path, stem: str) -> None:
         "def_height: 16",
         "x_offset: 0",
         "y_offset: 0",
-        "spacing: 1",
+        f"spacing: {spacing}",
         "",
     ]
     lines.extend(f"{slot} 16" for slot in range(SLOT_FIRST, 256))

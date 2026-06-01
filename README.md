@@ -19,6 +19,8 @@
 通用 `AppTextE.dll` 与平台 `TextE.dll` 动态文本汉化流程见 `docs/dll_text_localization_workflow.md`。
 海军资料库 `Graphics\usnidata` 文本汉化流程见 `docs/usni_reference_localization_workflow.md`。
 
+统一固化流水线见 `docs/localization_pipeline.md`，默认配置为 `config/localization.yaml`。
+
 ## 文本 PoC
 
 使用你指定的 Python 环境导出 DLL 字符串并生成一个中文显示试验 DLL：

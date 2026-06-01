@@ -412,6 +412,16 @@ Copy-Item "$missions\Scenario\*" "$game\Scenario\" -Force
 - `--font-text`：放不回填进 `AppTextE.dll`、但必须纳入中文字库的 JSON，例如任务译文和平台 `TextE.dll` 译文。
 - 每次新增任何中文来源，都重新生成并一起覆盖 `dinput8.dll`、`Graphics\shared.ndx/.grp`，不要只覆盖单独的 DLL 或任务文件。
 
+如果新增大量 `AppTextE_zh.json` 后，某些紧凑界面里的中文看起来重叠或不清晰，优先在 `config\localization.yaml` 中调小中文字形并增加字距：
+
+```yaml
+runtime:
+  cjk_glyph_size: 14
+  cjk_advance_extra: 1
+```
+
+更紧凑的界面可试 `cjk_glyph_size: 13` 与 `cjk_advance_extra: 2`。修改后重新运行统一流水线并覆盖 `dinput8.dll` 与 `Graphics\shared.ndx/.grp`。
+
 ## 13. 第六步：安装可运行包
 
 ### 通用 `AppTextE.dll` 包

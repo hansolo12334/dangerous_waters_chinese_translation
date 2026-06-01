@@ -1,0 +1,34 @@
+game_dir: D:\project\dangerous waters\Dangerous Waters
+output_dir: build\localized
+
+runtime:
+  enabled: true
+  cjk_glyph_size: 16
+  cjk_advance_extra: 3
+  apptext_source: D:\project\dangerous waters\Dangerous Waters\back\AppTextE.dll
+  shared_source: D:\project\dangerous waters\Dangerous Waters\Graphics\back\shared
+  apptext_translations:
+    - translations\dll\AppTextE_zh.json
+  font_text:
+    - translations\scenarios
+    - translations\usni
+
+scenarios:
+  enabled: true
+  source_dir: D:\project\dangerous waters\Dangerous Waters\Scenario
+  translations:
+    - translations\scenarios
+  suffix: _zh
+
+usni:
+  enabled: true
+  translations:
+    - translations\usni
+
+static_graphics:
+  mainmenu:
+    enabled: false
+    note: 目前仅适合关键按钮的程序式汉化；大面积文字图片建议用 Photoshop 等工具人工处理。
+
+install:
+  enabled: false
