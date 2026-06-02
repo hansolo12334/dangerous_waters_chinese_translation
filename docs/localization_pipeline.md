@@ -23,8 +23,9 @@ output_dir: build\localized
 
 runtime:
   enabled: true
+  wqy_pcf: assets\wqy-bitmapsong\wenquanyi_11pt.pcf
   cjk_glyph_size: 14
-  cjk_advance_extra: 1
+  cjk_advance_extra: 2
   apptext_source: D:\project\dangerous waters\Dangerous Waters\back\AppTextE.dll
   shared_source: D:\project\dangerous waters\Dangerous Waters\Graphics\back\shared
   apptext_translations:
@@ -55,8 +56,9 @@ install:
 
 规则：
 
-- `runtime.cjk_glyph_size`：中文字形实际绘制尺寸，范围 `8..16`。默认建议 `14`，表示放进 `16×16` 格子中居中，减少贴边和裁剪。
+- `runtime.cjk_glyph_size`：中文字形实际绘制尺寸，范围 `8..16`。文泉驿 PCF 是位图字体，默认建议 `16` 保持原始清晰度；缩小到 `14` 或 `13` 可能丢笔画、发糊。
 - `runtime.cjk_advance_extra`：中文字形额外字距，范围 `0..8`。默认建议 `1`，可缓解紧凑 UI 中的横向粘连。
+- `runtime.wqy_pcf`：中文字形来源。需要小字号时优先使用原生小字号 PCF，例如 `wenquanyi_11pt.pcf`，不要把 `wenquanyi_12pt.pcf` 硬缩小。
 - `runtime.apptext_translations`：只放要写入 `AppTextE.dll` 的 JSON。
 - `runtime.font_text`：放不写入 `AppTextE.dll`、但必须纳入中文字库的 JSON 或目录，例如 `scenarios`、`usni`。
 - `scenarios.translations`：任务译文目录或单个 JSON，文件名按 `SM08_zh.json` 这类格式匹配原始任务文件。
@@ -153,15 +155,32 @@ install:
 
 ```yaml
 runtime:
+  wqy_pcf: assets\wqy-bitmapsong\wenquanyi_11pt.pcf
   cjk_glyph_size: 14
-  cjk_advance_extra: 1
+  cjk_advance_extra: 2
+  cjk_skip_outline_layers: false
+  cjk_max_source_height: 16
 ```
 
-如果仍然拥挤，可尝试：
+`cjk_skip_outline_layers` 是实验选项，用于跳过疑似 `fru_*_r1/r3/r4` 的阴影/描边字体层。实测部分界面实际只走这些字体对象，开启后可能导致中文全部消失，因此默认应保持 `false`。
+
+当前可用字体尺寸：
+
+```text
+assets\wqy-bitmapsong\wenquanyi_9pt.pcf     原生约 11×11
+assets\wqy-bitmapsong\wenquanyi_10pt.pcf    原生约 12×12
+assets\wqy-bitmapsong\wenquanyi_11pt.pcf    原生约 14×14
+assets\wqy-bitmapsong\wenquanyi_12pt.pcf    原生约 16×16
+assets\wqy-bitmapsong\wenquanyi_13px.pcf    原生约 13×13，部分字宽可变
+```
+
+`assets\wqy-bitmapsong-extra` 中的 `wenquanyi_14pt.bdf` 与 `wenquanyi_8pt.bdf` 当前为 `0` 字节，不能直接用于构建。
+
+如果仍然拥挤，优先压缩译文或减少单行字数；确实需要试缩小时再尝试：
 
 ```yaml
 runtime:
-  cjk_glyph_size: 13
+  cjk_glyph_size: 14
   cjk_advance_extra: 2
 ```
 

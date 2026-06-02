@@ -105,10 +105,21 @@ def build_runtime(repository: Path, game_dir: Path, output: Path, config: dict) 
     shared_source = config.get("shared_source")
     if shared_source:
         command += ["--shared-source", str(resolve_path(shared_source, repository))]
+    wqy_pcf = config.get("wqy_pcf")
+    if wqy_pcf:
+        command += ["--wqy-pcf", str(resolve_path(wqy_pcf, repository))]
     if "cjk_glyph_size" in config:
         command += ["--cjk-glyph-size", str(config["cjk_glyph_size"])]
     if "cjk_advance_extra" in config:
         command += ["--cjk-advance-extra", str(config["cjk_advance_extra"])]
+    if "cjk_skip_outline_layers" in config:
+        command += [
+            "--cjk-skip-outline-layers"
+            if config["cjk_skip_outline_layers"]
+            else "--no-cjk-skip-outline-layers"
+        ]
+    if "cjk_max_source_height" in config:
+        command += ["--cjk-max-source-height", str(config["cjk_max_source_height"])]
 
     apptext_translations = resolve_path_list(config.get("apptext_translations"), repository)
     if apptext_translations:

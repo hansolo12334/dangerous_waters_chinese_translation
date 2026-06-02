@@ -65,6 +65,18 @@ def main() -> None:
         default=0,
         help="Extra spacing pixels added after each CJK glyph.",
     )
+    parser.add_argument(
+        "--cjk-skip-outline-layers",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Skip drawing CJK glyphs on oversized FUI font layers used for shadow/outline passes.",
+    )
+    parser.add_argument(
+        "--cjk-max-source-height",
+        type=int,
+        default=16,
+        help="Maximum source font glyph height allowed to draw CJK when outline-layer skipping is enabled.",
+    )
     arguments = parser.parse_args()
     if not 8 <= arguments.cjk_glyph_size <= 16:
         raise ValueError("--cjk-glyph-size must be between 8 and 16")
@@ -99,7 +111,12 @@ def main() -> None:
         advance_extra=arguments.cjk_advance_extra,
     )
     update_archive(repository / "grp" / "bin" / "grp.exe", archive, assets_dir, mappings)
-    write_glyph_map_header(generated_dir / "generated_glyph_map.h", mappings)
+    write_glyph_map_header(
+        generated_dir / "generated_glyph_map.h",
+        mappings,
+        skip_outline_layers=arguments.cjk_skip_outline_layers,
+        max_source_height=arguments.cjk_max_source_height,
+    )
     (output / "glyph_map.json").write_text(
         json.dumps(
             {
@@ -248,9 +265,17 @@ def update_archive(
     )
 
 
-def write_glyph_map_header(path: Path, mappings: list[tuple[str, int, int]]) -> None:
+def write_glyph_map_header(
+    path: Path,
+    mappings: list[tuple[str, int, int]],
+    skip_outline_layers: bool,
+    max_source_height: int,
+) -> None:
     lines = [
         "#pragma once",
+        "",
+        f"static constexpr bool kSkipCjkOutlineLayers = {'true' if skip_outline_layers else 'false'};",
+        f"static constexpr int kMaxCjkSourceHeight = {max_source_height};",
         "",
         "struct UnicodeGlyph { unsigned int codepoint; unsigned char page; unsigned char slot; };",
         "static const UnicodeGlyph kUnicodeGlyphs[] = {",

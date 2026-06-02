@@ -111,13 +111,22 @@ struct ResolvedGlyph {
     void *font;
     unsigned char slot;
     int consumed;
+    bool draw;
 };
+
+int GlyphHeight(void *font, unsigned char slot);
+
+bool ShouldDrawCjkLayer(void *sourceFont) {
+    if (!kSkipCjkOutlineLayers) return true;
+    if (!sourceFont || !ReadInt(sourceFont, 88)) return true;
+    return GlyphHeight(sourceFont, static_cast<unsigned char>('A')) <= kMaxCjkSourceHeight;
+}
 
 ResolvedGlyph ResolveGlyph(void *sourceFont, const unsigned char *text, int remaining) {
     int consumed = 1;
     unsigned int codepoint = DecodeUtf8(text, remaining, &consumed);
     if (codepoint < 0x80) {
-        return {sourceFont, static_cast<unsigned char>(codepoint), consumed};
+        return {sourceFont, static_cast<unsigned char>(codepoint), consumed, true};
     }
     const UnicodeGlyph *mapped = FindChineseGlyph(codepoint);
     if (mapped) {
@@ -125,10 +134,10 @@ ResolvedGlyph ResolveGlyph(void *sourceFont, const unsigned char *text, int rema
         if (font) {
             WriteWord(font, 76, *reinterpret_cast<unsigned short *>(
                 reinterpret_cast<unsigned char *>(sourceFont) + 76));
-            return {font, mapped->slot, consumed};
+            return {font, mapped->slot, consumed, ShouldDrawCjkLayer(sourceFont)};
         }
     }
-    return {sourceFont, static_cast<unsigned char>('?'), consumed};
+    return {sourceFont, static_cast<unsigned char>('?'), consumed, true};
 }
 
 int GlyphWidth(void *font, unsigned char slot) {
@@ -221,7 +230,7 @@ int __fastcall HookLineRender(
             continue;
         }
         ResolvedGlyph glyph = ResolveGlyph(font, text + offset, length - offset);
-        DrawResolvedGlyph(font, destination, x, y, glyph);
+        if (glyph.draw) DrawResolvedGlyph(font, destination, x, y, glyph);
         x += ReadInt(glyph.font, 68) + GlyphWidth(glyph.font, glyph.slot);
         offset += glyph.consumed;
     }

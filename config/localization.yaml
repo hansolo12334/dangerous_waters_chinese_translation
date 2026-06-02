@@ -3,8 +3,11 @@ output_dir: build\localized
 
 runtime:
   enabled: true
-  cjk_glyph_size: 16
-  cjk_advance_extra: 3
+  cjk_glyph_size: 14
+  cjk_advance_extra: 2
+  cjk_skip_outline_layers: false
+  cjk_max_source_height: 16
+  wqy_pcf: assets\wqy-bitmapsong\wenquanyi_10pt.pcf
   apptext_source: D:\project\dangerous waters\Dangerous Waters\back\AppTextE.dll
   shared_source: D:\project\dangerous waters\Dangerous Waters\Graphics\back\shared
   apptext_translations:

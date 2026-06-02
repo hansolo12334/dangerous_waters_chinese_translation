@@ -416,11 +416,14 @@ Copy-Item "$missions\Scenario\*" "$game\Scenario\" -Force
 
 ```yaml
 runtime:
+  wqy_pcf: assets\wqy-bitmapsong\wenquanyi_11pt.pcf
   cjk_glyph_size: 14
-  cjk_advance_extra: 1
+  cjk_advance_extra: 2
+  cjk_skip_outline_layers: false
+  cjk_max_source_height: 16
 ```
 
-更紧凑的界面可试 `cjk_glyph_size: 13` 与 `cjk_advance_extra: 2`。修改后重新运行统一流水线并覆盖 `dinput8.dll` 与 `Graphics\shared.ndx/.grp`。
+文泉驿 PCF 是位图字体。需要小字号时优先切换到原生小字号 PCF，例如 `wenquanyi_11pt.pcf`，不要把 `wenquanyi_12pt.pcf` 硬缩小；`cjk_skip_outline_layers` 只是实验选项，开启后可能导致某些界面的中文全部消失，默认保持 `false`。更紧凑的界面优先压缩译文或减少单行字数。修改后重新运行统一流水线并覆盖 `dinput8.dll` 与 `Graphics\shared.ndx/.grp`。
 
 ## 13. 第六步：安装可运行包
 
