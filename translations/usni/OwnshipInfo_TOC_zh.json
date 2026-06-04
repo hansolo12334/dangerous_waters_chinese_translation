@@ -1,0 +1,41 @@
+{
+    "file": "OwnshipInfo_TOC.txt",
+    "lines": [
+        "<FONT=\"fru_plain.bmp\" COLOR=216 188 24>本舰信息",
+        "<end>",
+        "<FONT=\"fru_plain.bmp\" COLOR=24 180 240>潜艇最大与最小深度",
+        "<end>",
+        "<FONT=\"fru_plain.bmp\" COLOR=228 228 228 LINK=\"688i_Max_Mins.txt\",\"nophoto.jpg\",\"\">    688 I SSN",
+        "<end>",
+        "<FONT=\"fru_plain.bmp\" COLOR=228 228 228 LINK=\"Akula_Max_Mins.txt\",\"nophoto.jpg\",\"\">    Akula SSN",
+        "<end>",
+        "<FONT=\"fru_plain.bmp\" COLOR=228 228 228 LINK=\"Kilo_Max_Mins.txt\",\"nophoto.jpg\",\"\">    Kilo SS",
+        "<end>",
+        "<FONT=\"fru_plain.bmp\" COLOR=228 228 228 LINK=\"Seawolf_Max_Mins.txt\",\"nophoto.jpg\",\"\">    Seawolf SSN",
+
+        "<end>",
+        "<FONT=\"fru_plain.bmp\" COLOR=24 180 240>本舰传感器",
+        "<end>",
+        "<FONT=\"fru_plain.bmp\" COLOR=228 228 228 LINK=\"688iSensors.txt\",\"nophoto.jpg\",\"\">    688(I) SSN 传感器",
+        "<end>",
+        "<FONT=\"fru_plain.bmp\" COLOR=228 228 228 LINK=\"AkulaSensors.txt\",\"nophoto.jpg\",\"\">    Akula SSN 传感器",
+        "<end>",
+        "<FONT=\"fru_plain.bmp\" COLOR=228 228 228 LINK=\"FFGSensors.txt\",\"nophoto.jpg\",\"\">    O.H. Perry FFG 传感器",
+        "<end>",
+        "<FONT=\"fru_plain.bmp\" COLOR=228 228 228 LINK=\"KiloSensors.txt\",\"nophoto.jpg\",\"\">    Kilo SS 传感器",
+        "<end>",
+        "<FONT=\"fru_plain.bmp\" COLOR=228 228 228 LINK=\"MH-60Sensors.txt\",\"nophoto.jpg\",\"\">    MH-60 Helicopter 传感器",
+        "<end>",
+        "<FONT=\"fru_plain.bmp\" COLOR=228 228 228 LINK=\"P-3CSensors.txt\",\"nophoto.jpg\",\"\">    P-3 C Orion 传感器",
+        "<end>",
+        "<FONT=\"fru_plain.bmp\" COLOR=228 228 228 LINK=\"SeawolfSensors.txt\",\"nophoto.jpg\",\"\">    Seawolf SSN 传感器",
+
+        "<end>",
+        "<FONT=\"fru_plain.bmp\" COLOR=216 188 24>主动声纳频率:",
+        "<end>",
+        "<FONT=\"fru_plain.bmp\" COLOR=228 228 228 LINK=\"ActiveSonarRanges.txt\",\"nophoto.jpg\",\"\">    主动频率范围",
+
+        "<end>"
+    ]
+
+}
