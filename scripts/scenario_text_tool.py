@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 from pathlib import Path
 
 
@@ -16,6 +17,8 @@ TEXT_FIELDS = {
     "SUCCESSMESSAGE",
     "TASKINGMESSAGE",
 }
+
+GOALNAME_PATTERN = re.compile(r'(\s*GOALNAME\s+")([^"]*)(".*)$')
 
 
 def translation_lines(value) -> list[str]:
@@ -70,6 +73,16 @@ def locate_blocks(lines: list[str]) -> list[tuple[str, int, int, int]]:
     return blocks
 
 
+def locate_goal_names(lines: list[str]) -> list[tuple[str, int, str]]:
+    goals: list[tuple[str, int, str]] = []
+    for index, line in enumerate(lines):
+        match = GOALNAME_PATTERN.match(line)
+        if match is None:
+            continue
+        goals.append((f"GOALNAME#{len(goals) + 1}", index, match.group(2)))
+    return goals
+
+
 def extract_blocks(source: Path, output: Path) -> None:
     lines = source.read_text(encoding="utf-8-sig").splitlines()
     translations = {
@@ -77,6 +90,7 @@ def extract_blocks(source: Path, output: Path) -> None:
         for key, start, end, _ in locate_blocks(lines)
         if key.startswith("MESSAGETYPEID#") is False or "\n".join(lines[start:end]).strip()
     }
+    translations.update({key: value for key, _, value in locate_goal_names(lines)})
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(
         json.dumps(translations, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
@@ -88,10 +102,21 @@ def patch_blocks(source: Path, translations_path: Path, output: Path) -> None:
     lines = source.read_text(encoding="utf-8-sig").splitlines()
     translations = json.loads(translations_path.read_text(encoding="utf-8"))
     blocks = {key: (start, end) for key, start, end, _ in locate_blocks(lines)}
-    missing = sorted(set(translations) - set(blocks))
+    goal_names = {key: index for key, index, _ in locate_goal_names(lines)}
+    known_keys = set(blocks) | set(goal_names)
+    missing = sorted(set(translations) - known_keys)
     if missing:
         raise ValueError(f"Unknown scenario text blocks: {', '.join(missing)}")
     patched = 0
+    for key, index in goal_names.items():
+        if key not in translations:
+            continue
+        replacement = " ".join(translation_lines(translations[key]))
+        match = GOALNAME_PATTERN.match(lines[index])
+        if match is None:
+            raise ValueError(f"Invalid GOALNAME line at {index + 1}: {lines[index]}")
+        lines[index] = f"{match.group(1)}{replacement}{match.group(3)}"
+        patched += 1
     for key, (start, end) in sorted(blocks.items(), key=lambda item: item[1][0], reverse=True):
         if key not in translations:
             continue

@@ -8,6 +8,15 @@
   "DESCRIPTION#7": "抵达河湾. 报告雷区.",
 
   "MISSIONTITLE#1": "非洲蜂巢",
+
+  "GOALNAME#2": "攻击本舰",
+  "GOALNAME#11": "货轮 S.V.T. Calutam 遭攻击",
+  "GOALNAME#12": "渔船 Fen 遭攻击",
+  "GOALNAME#13": "渔船 Kee Tae 遭攻击",
+  "GOALNAME#14": "拖网渔船 Roberta B 遭攻击",
+  "GOALNAME#15": "冈比亚巡逻艇 #12 遭攻击",
+  "GOALNAME#16": "冈比亚巡逻艇 #15 遭攻击",
+  "GOALNAME#17": "帆船 Nikki Mar 遭攻击",
   
   "PLAYERTASKING#1":[
     "<R>",

@@ -16,6 +16,13 @@ runtime:
     - translations\scenarios
     - translations\usni
 
+platform_dlls:
+  enabled: true
+  items:
+    - platform: FFG
+      dll: TextE.dll
+      translation: translations\dll\FFG_TextE_zh.json
+
 scenarios:
   enabled: true
   source_dir: D:\project\dangerous waters\Dangerous Waters\Scenario

@@ -3,6 +3,7 @@
 本流程用于把当前已验证的汉化来源统一构建成一个可安装包：
 
 - 动态 DLL 文本：`translations\dll\AppTextE_zh.json`
+- 平台操作台 DLL 文本：`translations\dll\FFG_TextE_zh.json` 等
 - 任务文本：`translations\scenarios\*.json`
 - USNI 资料库文本：`translations\usni\*.json`
 - 静态图片：目前仅对主菜单关键按钮做程序式汉化，可选启用
@@ -34,6 +35,13 @@ runtime:
     - translations\scenarios
     - translations\usni
 
+platform_dlls:
+  enabled: false
+  items:
+    - platform: FFG
+      dll: TextE.dll
+      translation: translations\dll\FFG_TextE_zh.json
+
 scenarios:
   enabled: true
   source_dir: D:\project\dangerous waters\Dangerous Waters\Scenario
@@ -61,6 +69,7 @@ install:
 - `runtime.wqy_pcf`：中文字形来源。需要小字号时优先使用原生小字号 PCF，例如 `wenquanyi_11pt.pcf`，不要把 `wenquanyi_12pt.pcf` 硬缩小。
 - `runtime.apptext_translations`：只放要写入 `AppTextE.dll` 的 JSON。
 - `runtime.font_text`：放不写入 `AppTextE.dll`、但必须纳入中文字库的 JSON 或目录，例如 `scenarios`、`usni`。
+- `platform_dlls.items`：平台操作台 DLL，例如 `Interfaces\FFG\TextE.dll`。启用后脚本会把译文回填到对应 DLL，并自动把这些译文加入中文字库；不用再手动追加到 `runtime.font_text`。
 - `scenarios.translations`：任务译文目录或单个 JSON，文件名按 `SM08_zh.json` 这类格式匹配原始任务文件。
 - `usni.translations`：USNI 译文目录或单个 JSON。
 - `static_graphics.mainmenu.enabled`：是否重绘并回包主菜单关键按钮。
@@ -85,10 +94,15 @@ build\localized\package\
 │  ├─ shared.grp
 │  ├─ usnidata.ndx
 │  └─ usnidata.grp
+├─ Interfaces\
+│  └─ FFG\
+│     └─ TextE.dll
 └─ Scenario\
    ├─ SM08.ms
    └─ ...
 ```
+
+`Interfaces\...` 只有在 `platform_dlls.enabled: true` 且对应译文存在时才会输出。
 
 如果启用 `static_graphics.mainmenu.enabled: true`，还会输出：
 
@@ -109,6 +123,7 @@ Copy-Item "$pack\dinput8.dll" "$game\dinput8.dll" -Force
 Copy-Item "$pack\AppTextE.dll" "$game\AppTextE.dll" -Force
 Copy-Item "$pack\Graphics\*" "$game\Graphics\" -Force
 Copy-Item "$pack\Scenario\*" "$game\Scenario\" -Force
+if (Test-Path "$pack\Interfaces") { Copy-Item "$pack\Interfaces\*" "$game\Interfaces\" -Recurse -Force }
 ```
 
 或直接安装：
@@ -194,6 +209,30 @@ runtime:
 font_text:
   - translations\scenarios
   - translations\usni
+```
+
+### FFG 操作台文本不生效
+
+确认已启用平台 DLL 构建：
+
+```yaml
+platform_dlls:
+  enabled: true
+  items:
+    - platform: FFG
+      dll: TextE.dll
+      translation: translations\dll\FFG_TextE_zh.json
+```
+
+流水线会做两件事：
+
+- 将 `translations\dll\FFG_TextE_zh.json` 回填到 `Interfaces\FFG\TextE.dll`。
+- 将同一个 JSON 自动追加进字体构建，避免进 FFG 后中文显示为 `?`。
+
+安装时如果手动复制，别漏掉：
+
+```powershell
+Copy-Item "$pack\Interfaces\FFG\TextE.dll" "$game\Interfaces\FFG\TextE.dll" -Force
 ```
 
 ### 只想构建文本，不处理主菜单

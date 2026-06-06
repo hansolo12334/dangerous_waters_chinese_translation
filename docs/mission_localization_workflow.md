@@ -87,6 +87,7 @@ if (Test-Path "$game\dinput8.dll") { Copy-Item "$game\dinput8.dll" "$backup\dinp
 | `TASKINGMESSAGE` | 任务指令或动态任务信息 | 若存在，应翻译并实机触发验证 |
 | `MESSAGETYPEID` | `GOAL` / `ACTION` 触发消息、弹窗或扣分提示 | 非空项优先翻译，必须实机触发验证 |
 | `SUCCESSMESSAGE` / `FAILUREMESSAGE` | 任务成功/失败消息 | 若任务文件中存在，应翻译 |
+| `GOALNAME` | 任务目标/评分页面的目标名称 | 例如完成/未完成列表中的项目；按出现顺序编号 |
 
 同一字段可在一个任务文件内出现多次。JSON 键使用出现顺序编号，例如：
 
@@ -94,6 +95,7 @@ if (Test-Path "$game\dinput8.dll") { Copy-Item "$game\dinput8.dll" "$backup\dinp
 {
   "DESCRIPTION#1": "整备锚泊与航行设备，立即出港驶向外海。",
   "MISSIONTITLE#1": "非洲蜂巢",
+  "GOALNAME#2": "攻击本舰",
   "MESSAGETYPEID#1": "受损！",
   "PLAYERTASKING#1": "..."
 }
@@ -106,6 +108,12 @@ MESSAGETYPEID 1
 BEGINTEXT
 Damaged sustained!
 ENDTEXT
+```
+
+`GOALNAME#n` 来自以下结构，常见于任务目标/评分清单；编号按所有 `GOALNAME` 的出现顺序计算：
+
+```text
+GOALNAME "Attacks against ownship"
 ```
 
 长篇简报也可以把某个字段写成 `lines` 风格的数组，便于按原始排版维护；`scenario_text_tool.py` 回填时会按数组顺序逐行写回：

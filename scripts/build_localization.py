@@ -36,14 +36,21 @@ def main() -> None:
     package_dir.mkdir(parents=True, exist_ok=True)
 
     runtime_config = config.get("runtime", {})
+    platform_dll_config = config.get("platform_dlls", {})
     scenario_config = config.get("scenarios", {})
     usni_config = config.get("usni", {})
     static_config = config.get("static_graphics", {})
 
+    platform_dll_items = platform_dll_config.get("items", []) if platform_dll_config.get("enabled", False) else []
+    platform_font_text = collect_platform_font_text(repository, platform_dll_items)
+
     runtime_output = output_dir / "runtime"
     if runtime_config.get("enabled", True):
-        build_runtime(repository, game_dir, runtime_output, runtime_config)
+        build_runtime(repository, game_dir, runtime_output, runtime_config, platform_font_text)
         copy_runtime_to_package(runtime_output, package_dir)
+
+    if platform_dll_config.get("enabled", False):
+        build_platform_dlls(repository, game_dir, output_dir, package_dir, platform_dll_items)
 
     if scenario_config.get("enabled", True):
         build_scenarios(repository, game_dir, output_dir, package_dir, scenario_config)
@@ -89,7 +96,9 @@ def run(command: list[str]) -> None:
     subprocess.run(command, check=True)
 
 
-def build_runtime(repository: Path, game_dir: Path, output: Path, config: dict) -> None:
+def build_runtime(
+    repository: Path, game_dir: Path, output: Path, config: dict, extra_font_text: list[Path] | None = None
+) -> None:
     command = [
         sys.executable,
         "-B",
@@ -125,6 +134,8 @@ def build_runtime(repository: Path, game_dir: Path, output: Path, config: dict) 
     if apptext_translations:
         command += ["--translations", *[str(path) for path in apptext_translations]]
     font_text = resolve_path_list(config.get("font_text"), repository)
+    if extra_font_text:
+        font_text += extra_font_text
     if font_text:
         command += ["--font-text", *[str(path) for path in font_text]]
     run(command)
@@ -135,6 +146,65 @@ def copy_runtime_to_package(runtime_output: Path, package_dir: Path) -> None:
     copy_file(runtime_output / "AppTextE.dll", package_dir / "AppTextE.dll")
     copy_file(runtime_output / "Graphics" / "shared.ndx", package_dir / "Graphics" / "shared.ndx")
     copy_file(runtime_output / "Graphics" / "shared.grp", package_dir / "Graphics" / "shared.grp")
+
+
+def collect_platform_font_text(repository: Path, items: list[dict]) -> list[Path]:
+    font_text: list[Path] = []
+    for item in items:
+        font_text.extend(resolve_path_list(item.get("translation") or item.get("translations"), repository))
+    return font_text
+
+
+def build_platform_dlls(
+    repository: Path, game_dir: Path, output_dir: Path, package_dir: Path, items: list[dict]
+) -> None:
+    if not items:
+        print("No platform DLL translations configured; skipping platform DLL patching.")
+        return
+    platform_output_dir = output_dir / "platform_dlls"
+    for item in items:
+        source = resolve_platform_source(repository, game_dir, item)
+        translation_paths = resolve_path_list(item.get("translation") or item.get("translations"), repository)
+        if len(translation_paths) != 1:
+            raise ValueError(f"Expected exactly one translation JSON for platform DLL item: {item}")
+        destination_relative = resolve_platform_destination(game_dir, source, item)
+        patched = platform_output_dir / destination_relative
+        run(
+            [
+                sys.executable,
+                "-B",
+                str(repository / "scripts" / "dw_string_tool.py"),
+                "patch",
+                str(source),
+                str(translation_paths[0]),
+                str(patched),
+            ]
+        )
+        copy_file(patched, package_dir / destination_relative)
+
+
+def resolve_platform_source(repository: Path, game_dir: Path, item: dict) -> Path:
+    if item.get("source"):
+        return resolve_path(item["source"], repository)
+    platform = item.get("platform")
+    if not platform:
+        raise ValueError(f"Platform DLL item needs either source or platform: {item}")
+    dll_name = item.get("dll", "TextE.dll")
+    return game_dir / "Interfaces" / platform / dll_name
+
+
+def resolve_platform_destination(game_dir: Path, source: Path, item: dict) -> Path:
+    if item.get("destination"):
+        return Path(item["destination"])
+    platform = item.get("platform")
+    if platform:
+        return Path("Interfaces") / platform / item.get("dll", source.name)
+    try:
+        return source.resolve().relative_to(game_dir.resolve())
+    except ValueError as error:
+        raise ValueError(
+            f"Platform DLL item with external source needs destination or platform: {item}"
+        ) from error
 
 
 def build_scenarios(
