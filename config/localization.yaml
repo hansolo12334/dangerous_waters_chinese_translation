@@ -1,4 +1,4 @@
-game_dir: D:\project\dangerous waters\Dangerous Waters
+game_dir:  D:\project\code\dw_trans\Dangerous Waters
 output_dir: build\localized
 
 runtime:
@@ -8,8 +8,8 @@ runtime:
   cjk_skip_outline_layers: false
   cjk_max_source_height: 16
   wqy_pcf: assets\wqy-bitmapsong\wenquanyi_10pt.pcf
-  apptext_source: D:\project\dangerous waters\Dangerous Waters\back\AppTextE.dll
-  shared_source: D:\project\dangerous waters\Dangerous Waters\Graphics\back\shared
+  apptext_source: D:\project\code\dw_trans\Dangerous Waters\back\AppTextE.dll
+  shared_source: D:\project\code\dw_trans\Dangerous Waters\Graphics\back\shared
   apptext_translations:
     - translations\dll\AppTextE_zh.json
   font_text:
@@ -25,7 +25,7 @@ platform_dlls:
 
 scenarios:
   enabled: true
-  source_dir: D:\project\dangerous waters\Dangerous Waters\Scenario
+  source_dir: D:\project\code\dw_trans\Dangerous Waters\Scenario
   translations:
     - translations\scenarios
   suffix: _zh

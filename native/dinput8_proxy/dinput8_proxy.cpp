@@ -29,12 +29,14 @@ using FinalizeSharedFontsFunction = int(__cdecl *)();
 using MeasureFunction = void(__thiscall *)(void *, const unsigned char *, int, int *, unsigned char);
 using LineRenderFunction = int(__thiscall *)(void *, int, int, int, const unsigned char *, int);
 using TextRenderFunction = void(__thiscall *)(void *, int, const unsigned char *, int, int *, unsigned char);
+using LoadStringAFunction = int(WINAPI *)(HINSTANCE, UINT, LPSTR, int);
 
 HMODULE gRealDinput8;
 DirectInput8CreateFunction gDirectInput8Create;
 MeasureFunction gOriginalMeasure;
 LineRenderFunction gOriginalLineRender;
 TextRenderFunction gOriginalTextRender;
+LoadStringAFunction gOriginalLoadStringA;
 void *gChineseFonts[64];
 
 int ReadInt(const void *object, int offset) {
@@ -75,6 +77,37 @@ unsigned int DecodeUtf8(const unsigned char *text, int remaining, int *consumed)
             | ((text[2] & 0x3F) << 6) | (text[3] & 0x3F);
     }
     return '?';
+}
+
+unsigned int DecodeAnsi(const unsigned char *text, int remaining, int *consumed) {
+    *consumed = 1;
+    if (!text || remaining <= 0) return '?';
+    if (text[0] < 0x80) return text[0];
+
+    int byteCount = 1;
+    if (remaining >= 2 && IsDBCSLeadByteEx(CP_ACP, text[0])) byteCount = 2;
+
+    wchar_t decoded = L'?';
+    int converted = MultiByteToWideChar(
+        CP_ACP,
+        MB_ERR_INVALID_CHARS,
+        reinterpret_cast<const char *>(text),
+        byteCount,
+        &decoded,
+        1);
+    if (!converted && byteCount == 2) {
+        byteCount = 1;
+        converted = MultiByteToWideChar(
+            CP_ACP,
+            MB_ERR_INVALID_CHARS,
+            reinterpret_cast<const char *>(text),
+            byteCount,
+            &decoded,
+            1);
+    }
+    if (!converted) return '?';
+    *consumed = byteCount;
+    return static_cast<unsigned int>(decoded);
 }
 
 const UnicodeGlyph *FindChineseGlyph(unsigned int codepoint) {
@@ -135,6 +168,17 @@ ResolvedGlyph ResolveGlyph(void *sourceFont, const unsigned char *text, int rema
             WriteWord(font, 76, *reinterpret_cast<unsigned short *>(
                 reinterpret_cast<unsigned char *>(sourceFont) + 76));
             return {font, mapped->slot, consumed, ShouldDrawCjkLayer(sourceFont)};
+        }
+    }
+    int ansiConsumed = 1;
+    unsigned int ansiCodepoint = DecodeAnsi(text, remaining, &ansiConsumed);
+    mapped = FindChineseGlyph(ansiCodepoint);
+    if (mapped) {
+        void *font = LoadChineseFont(mapped->page);
+        if (font) {
+            WriteWord(font, 76, *reinterpret_cast<unsigned short *>(
+                reinterpret_cast<unsigned char *>(sourceFont) + 76));
+            return {font, mapped->slot, ansiConsumed};
         }
     }
     return {sourceFont, static_cast<unsigned char>('?'), consumed, true};
@@ -318,6 +362,73 @@ bool InstallDirectJump(DWORD address, void *replacement) {
     return true;
 }
 
+int WINAPI HookLoadStringA(HINSTANCE instance, UINT id, LPSTR buffer, int maxLength) {
+    if (!buffer || maxLength <= 0) {
+        return gOriginalLoadStringA ? gOriginalLoadStringA(instance, id, buffer, maxLength) : 0;
+    }
+    wchar_t wide[2048];
+    int wideLength = LoadStringW(instance, id, wide, static_cast<int>(sizeof(wide) / sizeof(wide[0])));
+    if (wideLength <= 0) {
+        return gOriginalLoadStringA ? gOriginalLoadStringA(instance, id, buffer, maxLength) : 0;
+    }
+    char utf8[4096];
+    int utf8Length = WideCharToMultiByte(
+        CP_UTF8, 0, wide, wideLength, utf8, static_cast<int>(sizeof(utf8)), nullptr, nullptr);
+    if (utf8Length <= 0) {
+        return gOriginalLoadStringA ? gOriginalLoadStringA(instance, id, buffer, maxLength) : 0;
+    }
+    int copied = utf8Length;
+    if (copied >= maxLength) copied = maxLength - 1;
+    std::memcpy(buffer, utf8, copied);
+    buffer[copied] = '\0';
+    return copied;
+}
+
+bool PatchImportByName(const char *moduleName, const char *functionName, void *replacement, void **original) {
+    HMODULE module = GetModuleHandleW(nullptr);
+    if (!module) return false;
+    auto base = reinterpret_cast<unsigned char *>(module);
+    auto dos = reinterpret_cast<IMAGE_DOS_HEADER *>(base);
+    if (dos->e_magic != IMAGE_DOS_SIGNATURE) return false;
+    auto nt = reinterpret_cast<IMAGE_NT_HEADERS *>(base + dos->e_lfanew);
+    if (nt->Signature != IMAGE_NT_SIGNATURE) return false;
+    IMAGE_DATA_DIRECTORY importsDirectory =
+        nt->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT];
+    if (!importsDirectory.VirtualAddress) return false;
+    auto imports = reinterpret_cast<IMAGE_IMPORT_DESCRIPTOR *>(base + importsDirectory.VirtualAddress);
+    for (; imports->Name; ++imports) {
+        const char *importModuleName = reinterpret_cast<const char *>(base + imports->Name);
+        if (lstrcmpiA(importModuleName, moduleName) != 0) continue;
+        auto names = reinterpret_cast<IMAGE_THUNK_DATA *>(
+            base + (imports->OriginalFirstThunk ? imports->OriginalFirstThunk : imports->FirstThunk));
+        auto addresses = reinterpret_cast<IMAGE_THUNK_DATA *>(base + imports->FirstThunk);
+        for (; names->u1.AddressOfData; ++names, ++addresses) {
+            if (IMAGE_SNAP_BY_ORDINAL(names->u1.Ordinal)) continue;
+            auto importByName = reinterpret_cast<IMAGE_IMPORT_BY_NAME *>(base + names->u1.AddressOfData);
+            if (std::strcmp(reinterpret_cast<const char *>(importByName->Name), functionName) != 0) {
+                continue;
+            }
+            DWORD originalProtection;
+            if (!VirtualProtect(&addresses->u1.Function, sizeof(void *), PAGE_READWRITE, &originalProtection)) {
+                return false;
+            }
+            if (original) *original = reinterpret_cast<void *>(addresses->u1.Function);
+            addresses->u1.Function = reinterpret_cast<ULONG_PTR>(replacement);
+            VirtualProtect(&addresses->u1.Function, sizeof(void *), originalProtection, &originalProtection);
+            return true;
+        }
+    }
+    return false;
+}
+
+bool InstallLoadStringHook() {
+    return PatchImportByName(
+        "USER32.dll",
+        "LoadStringA",
+        reinterpret_cast<void *>(&HookLoadStringA),
+        reinterpret_cast<void **>(&gOriginalLoadStringA));
+}
+
 bool InstallFuiHooks() {
     if (!InstallDirectJump(
             kFinalizeSharedFontsThunkAddress, reinterpret_cast<void *>(&HookFinalizeSharedFonts))) {
@@ -355,6 +466,7 @@ BOOL WINAPI DllMain(HINSTANCE instance, DWORD reason, LPVOID) {
     if (reason == DLL_PROCESS_ATTACH) {
         DisableThreadLibraryCalls(instance);
         LoadRealDinput8();
+        InstallLoadStringHook();
         InstallFuiHooks();
     }
     return TRUE;
